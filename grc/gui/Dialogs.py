@@ -17,15 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 """
 
-import pygtk
-pygtk.require('2.0')
 import gtk
 
 import sys
 from distutils.spawn import find_executable
 
-
-from . import Utils, Actions, Constants, Messages
+from . import Utils, Actions
+from ..core import Messages
 
 
 class SimpleTextDisplay(gtk.TextView):
@@ -74,7 +72,7 @@ class TextDisplay(SimpleTextDisplay):
         # for each \b delete one char from the buffer
         back_count = 0
         start_iter = self.get_buffer().get_end_iter()
-        while line[back_count] == '\b':
+        while len(line) > back_count and line[back_count] == '\b':
             # stop at the beginning of a line
             if not start_iter.starts_line(): start_iter.backward_char()
             back_count += 1
@@ -94,21 +92,21 @@ class TextDisplay(SimpleTextDisplay):
         buffer.delete(buffer.get_start_iter(), buffer.get_end_iter())
 
     def save(self, file_path):
-        report_file = open(file_path, 'w')
+        console_file = open(file_path, 'w')
         buffer = self.get_buffer()
-        report_file.write(buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True))
-        report_file.close()
+        console_file.write(buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True))
+        console_file.close()
 
     # Callback functions to handle the scrolling lock and clear context menus options
     # Action functions are set by the ActionHandler's init function
     def clear_cb(self, menu_item, web_view):
-        Actions.CLEAR_REPORTS()
+        Actions.CLEAR_CONSOLE()
 
     def scroll_back_cb(self, menu_item, web_view):
         Actions.TOGGLE_SCROLL_LOCK()
 
     def save_cb(self, menu_item, web_view):
-        Actions.SAVE_REPORTS()
+        Actions.SAVE_CONSOLE()
 
     def populate_popup(self, view, menu):
         """Create a popup menu for the scroll lock and clear functions"""
@@ -177,14 +175,14 @@ def ErrorsDialog(flowgraph): MessageDialogHelper(
 class AboutDialog(gtk.AboutDialog):
     """A cute little about dialog."""
 
-    def __init__(self, platform):
+    def __init__(self, config):
         """AboutDialog constructor."""
         gtk.AboutDialog.__init__(self)
-        self.set_name(platform.get_name())
-        self.set_version(platform.get_version())
-        self.set_license(platform.get_license())
-        self.set_copyright(platform.get_license().splitlines()[0])
-        self.set_website(platform.get_website())
+        self.set_name(config.name)
+        self.set_version(config.version)
+        self.set_license(config.license)
+        self.set_copyright(config.license.splitlines()[0])
+        self.set_website(config.website)
         self.run()
         self.destroy()
 
@@ -240,7 +238,7 @@ def MissingXTermDialog(xterm):
     )
 
 
-def ChooseEditorDialog():
+def ChooseEditorDialog(config):
     # Give the option to either choose an editor or use the default
     # Always return true/false so the caller knows it was successful
     buttons = (
@@ -266,10 +264,7 @@ def ChooseEditorDialog():
         file_dialog.set_current_folder('/usr/bin')
         try:
             if file_dialog.run() == gtk.RESPONSE_OK:
-                file_path = file_dialog.get_filename()
-                Constants.prefs.set_string('grc', 'editor', file_path)
-                Constants.prefs.save()
-                Constants.EDITOR = file_path
+                config.editor = file_path = file_dialog.get_filename()
                 file_dialog.destroy()
                 return file_path
         finally:
@@ -287,16 +282,12 @@ def ChooseEditorDialog():
             if process is None:
                 raise ValueError("Can't find default editor executable")
             # Save
-            Constants.prefs.set_string('grc', 'editor', process)
-            Constants.prefs.save()
-            Constants.EDITOR = process
+            config.editor = process
             return process
         except Exception:
             Messages.send('>>> Unable to load the default editor. Please choose an editor.\n')
             # Just reset of the constant and force the user to select an editor the next time
-            Constants.prefs.set_string('grc', 'editor', '')
-            Constants.prefs.save()
-            Constants.EDITOR = ""
+            config.editor = ''
             return
 
     Messages.send('>>> No editor selected.\n')

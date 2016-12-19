@@ -31,6 +31,7 @@ TOOLBAR_LIST = (
     Actions.FLOW_GRAPH_SAVE,
     Actions.FLOW_GRAPH_CLOSE,
     None,
+    Actions.TOGGLE_FLOW_GRAPH_VAR_EDITOR,
     Actions.FLOW_GRAPH_SCREEN_CAPTURE,
     None,
     Actions.BLOCK_CUT,
@@ -82,9 +83,11 @@ MENU_BAR_LIST = (
         Actions.BLOCK_COPY,
         Actions.BLOCK_PASTE,
         Actions.ELEMENT_DELETE,
+        Actions.SELECT_ALL,
         None,
         Actions.BLOCK_ROTATE_CCW,
         Actions.BLOCK_ROTATE_CW,
+        (gtk.Action('Align', '_Align', None, None), Actions.BLOCK_ALIGNMENTS),
         None,
         Actions.BLOCK_ENABLE,
         Actions.BLOCK_DISABLE,
@@ -95,10 +98,14 @@ MENU_BAR_LIST = (
     (gtk.Action('View', '_View', None, None), [
         Actions.TOGGLE_BLOCKS_WINDOW,
         None,
-        Actions.TOGGLE_REPORTS_WINDOW,
+        Actions.TOGGLE_CONSOLE_WINDOW,
         Actions.TOGGLE_SCROLL_LOCK,
-        Actions.SAVE_REPORTS,
-        Actions.CLEAR_REPORTS,
+        Actions.SAVE_CONSOLE,
+        Actions.CLEAR_CONSOLE,
+        None,
+        Actions.TOGGLE_HIDE_VARIABLES,
+        Actions.TOGGLE_FLOW_GRAPH_VAR_EDITOR,
+        Actions.TOGGLE_FLOW_GRAPH_VAR_EDITOR_SIDEBAR,
         None,
         Actions.TOGGLE_HIDE_DISABLED_BLOCKS,
         Actions.TOGGLE_AUTO_HIDE_PORT_LABELS,
@@ -188,7 +195,7 @@ class SubMenuCreator(object):
                 item = Actions.FLOW_GRAPH_NEW.create_menu_item()
                 item.set_label(name)
             else:
-                item = gtk.MenuItem(name)
+                item = gtk.MenuItem(name, use_underline=False)
                 item.connect('activate', self.callback_adaptor, (action, key))
             menu.append(item)
         menu.show_all()
@@ -201,7 +208,7 @@ class SubMenuCreator(object):
         recent_files = Preferences.get_recent_files()
         if len(recent_files) > 0:
             for i, file_name in enumerate(recent_files):
-                item = gtk.MenuItem("%d. %s" % (i+1, file_name))
+                item = gtk.MenuItem("%d. %s" % (i+1, file_name), use_underline=False)
                 item.connect('activate', self.callback_adaptor,
                              (action, file_name))
                 menu.append(item)

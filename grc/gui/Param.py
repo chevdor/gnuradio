@@ -23,8 +23,11 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
-from . import Colors, Utils, Constants, Dialogs
-from . Element import Element
+from . import Colors, Utils, Constants
+from .Element import Element
+from . import Utils
+
+from ..core.Param import Param as _Param
 
 
 class InputParam(gtk.HBox):
@@ -37,7 +40,7 @@ class InputParam(gtk.HBox):
         self._changed_callback = changed_callback
         self._editing_callback = editing_callback
         self.label = gtk.Label() #no label, markup is added by set_markup
-        self.label.set_size_request(150, -1)
+        self.label.set_size_request(Utils.scale_scalar(150), -1)
         self.pack_start(self.label, False)
         self.set_markup = lambda m: self.label.set_markup(m)
         self.tp = None
@@ -82,7 +85,7 @@ class InputParam(gtk.HBox):
         self._have_pending_changes = True
         self._update_gui()
         if self._editing_callback:
-            self._editing_callback()
+            self._editing_callback(self, None)
 
     def _apply_change(self, *args):
         """
@@ -93,7 +96,7 @@ class InputParam(gtk.HBox):
         self.param.set_value(self.get_text())
         #call the callback
         if self._changed_callback:
-            self._changed_callback(*args)
+            self._changed_callback(self, None)
         else:
             self.param.validate()
         #gui update
@@ -127,8 +130,19 @@ class EntryParam(InputParam):
         return self._input.get_text()
 
     def set_color(self, color):
-        self._input.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse(color))
-        self._input.modify_text(gtk.STATE_NORMAL, Colors.PARAM_ENTRY_TEXT_COLOR)
+        need_status_color = self.label not in self.get_children()
+        text_color = (
+            Colors.PARAM_ENTRY_TEXT_COLOR if not need_status_color else
+            gtk.gdk.color_parse('blue') if self._have_pending_changes else
+            gtk.gdk.color_parse('red') if not self.param.is_valid() else
+            Colors.PARAM_ENTRY_TEXT_COLOR)
+        base_color = (
+            Colors.BLOCK_DISABLED_COLOR
+            if need_status_color and not self.param.get_parent().get_enabled()
+            else gtk.gdk.color_parse(color)
+        )
+        self._input.modify_base(gtk.STATE_NORMAL, base_color)
+        self._input.modify_text(gtk.STATE_NORMAL, text_color)
 
     def set_tooltip_text(self, text):
         try:
@@ -317,7 +331,9 @@ class FileParam(EntryParam):
         if self.param.get_key() == 'qt_qss_theme':
             dirname = os.path.dirname(dirname)  # trim filename
             if not os.path.exists(dirname):
-               dirname = os.path.join(Constants.GR_PREFIX, '/share/gnuradio/themes')
+               platform = self.param.get_parent().get_parent().get_parent()
+               dirname = os.path.join(platform.config.install_prefix,
+                                      '/share/gnuradio/themes')
         if not os.path.exists(dirname):
             dirname = os.getcwd()  # fix bad paths
 
@@ -378,11 +394,12 @@ Error:
 #end if"""
 
 
-class Param(Element):
+class Param(Element, _Param):
     """The graphical parameter."""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         Element.__init__(self)
+        _Param.__init__(self, **kwargs)
 
     def get_input(self, *args, **kwargs):
         """

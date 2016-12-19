@@ -35,7 +35,7 @@ _config_parser = ConfigParser.SafeConfigParser()
 
 
 def file_extension():
-    return '.'+_platform.get_key()
+    return '.grc'
 
 
 def load(platform):
@@ -74,7 +74,7 @@ def entry(key, value=None, default=None):
         }.get(_type, _config_parser.get)
         try:
             result = getter('main', key)
-        except ConfigParser.Error:
+        except (AttributeError, ConfigParser.Error):
             result = _type() if default is None else default
     return result
 
@@ -106,7 +106,7 @@ def get_file_list(key):
     try:
         files = [value for name, value in _config_parser.items(key)
                  if name.startswith('%s_' % key)]
-    except ConfigParser.Error:
+    except (AttributeError, ConfigParser.Error):
         files = []
     return files
 
@@ -140,13 +140,34 @@ def add_recent_file(file_name):
         set_recent_files(recent_files[:10])  # Keep up to 10 files
 
 
-def reports_window_position(pos=None):
-    return entry('reports_window_position', pos, default=-1) or 1
+def console_window_position(pos=None):
+    return entry('console_window_position', pos, default=-1) or 1
 
 
 def blocks_window_position(pos=None):
     return entry('blocks_window_position', pos, default=-1) or 1
 
 
+def variable_editor_position(pos=None, sidebar=False):
+    # Figure out default
+    if sidebar:
+        w, h = main_window_size()
+        return entry('variable_editor_sidebar_position', pos, default=int(h*0.7))
+    else:
+        return entry('variable_editor_position', pos, default=int(blocks_window_position()*0.5))
+
+
+def variable_editor_sidebar(pos=None):
+    return entry('variable_editor_sidebar', pos, default=False)
+
+
+def variable_editor_confirm_delete(pos=None):
+    return entry('variable_editor_confirm_delete', pos, default=True)
+
+
 def xterm_missing(cmd=None):
     return entry('xterm_missing', cmd, default='INVALID_XTERM_SETTING')
+
+
+def screen_shot_background_transparent(transparent=None):
+    return entry('screen_shot_background_transparent', transparent, default=False)

@@ -134,11 +134,7 @@ namespace gr {
       }
 
       // If a style sheet is set in the prefs file, enable it here.
-      std::string qssfile = prefs::singleton()->get_string("qtgui","qss","");
-      if(qssfile.size() > 0) {
-        QString sstext = get_qt_style_sheet(QString(qssfile.c_str()));
-        d_qApplication->setStyleSheet(sstext);
-      }
+      check_set_qss(d_qApplication);
 
       int numplots = (d_nconnections > 0) ? d_nconnections : 1;
       d_main_gui = new TimeDisplayForm(numplots, d_parent);
@@ -437,6 +433,12 @@ namespace gr {
     }
 
     void
+    time_sink_f_impl::enable_axis_labels(bool en)
+    {
+        d_main_gui->setAxisLabels(en);
+    }
+
+    void
     time_sink_f_impl::disable_legend()
     {
       d_main_gui->disableLegend();
@@ -643,7 +645,7 @@ namespace gr {
 
         uint64_t nr = nitems_read(idx);
         std::vector<gr::tag_t> tags;
-        get_tags_in_range(tags, idx, nr, nr + nitems + 1);
+        get_tags_in_range(tags, idx, nr, nr + nitems);
         for(size_t t = 0; t < tags.size(); t++) {
           tags[t].offset = tags[t].offset - nr + (d_index-d_start-1);
         }

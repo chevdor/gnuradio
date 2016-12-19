@@ -137,13 +137,9 @@ namespace gr {
       }
 
       // If a style sheet is set in the prefs file, enable it here.
-      std::string qssfile = prefs::singleton()->get_string("qtgui","qss","");
-      if(qssfile.size() > 0) {
-        QString sstext = get_qt_style_sheet(QString(qssfile.c_str()));
-        d_qApplication->setStyleSheet(sstext);
-      }
+      check_set_qss(d_qApplication);
 
-      int numplots = (d_nconnections > 0) ? d_nconnections : 1;
+      int numplots = (d_nconnections > 0) ? d_nconnections : 2;
       d_main_gui = new TimeDisplayForm(numplots, d_parent);
       d_main_gui->setNPoints(d_size);
       d_main_gui->setSampleRate(d_samp_rate);
@@ -441,10 +437,16 @@ namespace gr {
         d_main_gui->setTagMenu(which, en);
     }
 
+    void 
+    time_sink_c_impl::enable_axis_labels(bool en)
+    {
+        d_main_gui->setAxisLabels(en);
+    }
+
     void
     time_sink_c_impl::disable_legend()
     {
-      d_main_gui->disableLegend();
+        d_main_gui->disableLegend();
     }
 
     void
@@ -652,7 +654,7 @@ namespace gr {
 
         uint64_t nr = nitems_read(n);
         std::vector<gr::tag_t> tags;
-        get_tags_in_range(tags, n, nr, nr + nitems + 1);
+        get_tags_in_range(tags, n, nr, nr + nitems);
         for(size_t t = 0; t < tags.size(); t++) {
           tags[t].offset = tags[t].offset - nr + (d_index-d_start-1);
         }
@@ -692,6 +694,7 @@ namespace gr {
     {
       size_t len;
       pmt::pmt_t dict, samples;
+      std::vector< std::vector<gr::tag_t> > t(1);
 
       // Test to make sure this is either a PDU or a uniform vector of
       // samples. Get the samples PMT and the dictionary if it's a PDU.
@@ -707,6 +710,29 @@ namespace gr {
         throw std::runtime_error("time_sink_c: message must be either "
                                  "a PDU or a uniform vector of samples.");
       }
+
+      // add tag info if it is present in metadata
+      if(pmt::is_dict(dict)){
+        if(pmt::dict_has_key(dict, pmt::mp("tags"))){
+            d_tags.clear();
+            pmt::pmt_t tags = pmt::dict_ref(dict, pmt::mp("tags"), pmt::PMT_NIL);
+            int len = pmt::length(tags);
+            for(int i=0; i<len; i++){
+                // get tag info from list
+                pmt::pmt_t tup = pmt::vector_ref(tags, i);
+                int tagval = pmt::to_long(pmt::tuple_ref(tup,0));
+                pmt::pmt_t k = pmt::tuple_ref(tup,1);
+                pmt::pmt_t v = pmt::tuple_ref(tup,2);
+                
+                // add the tag
+                t[0].push_back( gr::tag_t() );
+                t[0][t[0].size()-1].offset = tagval;
+                t[0][t[0].size()-1].key = k;
+                t[0][t[0].size()-1].value = v;
+                t[0][t[0].size()-1].srcid = pmt::PMT_NIL;
+                }
+            }
+        }
 
       len = pmt::length(samples);
 
@@ -729,7 +755,6 @@ namespace gr {
                                       d_buffers[2*d_nconnections+1],
                                       in, len);
 
-        std::vector< std::vector<gr::tag_t> > t;
         d_qApplication->postEvent(d_main_gui,
                                   new TimeUpdateEvent(d_buffers, len, t));
       }

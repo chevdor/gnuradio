@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /* 
- * Copyright 2015 Free Software Foundation, Inc.
+ * Copyright 2015,2016 Free Software Foundation, Inc.
  * 
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 
 #include <gnuradio/io_signature.h>
 #include "dvbt_viterbi_decoder_impl.h"
-#include <stdio.h>
 
 namespace gr {
   namespace dtv {
@@ -71,25 +70,25 @@ namespace gr {
     };
 
 #ifdef DTV_SSE2
-    __m128i dvbt_viterbi_decoder_impl::d_metric0[4] __attribute__ ((aligned(16)));
-    __m128i dvbt_viterbi_decoder_impl::d_metric1[4] __attribute__ ((aligned(16)));
-    __m128i dvbt_viterbi_decoder_impl::d_path0[4] __attribute__ ((aligned(16)));
-    __m128i dvbt_viterbi_decoder_impl::d_path1[4] __attribute__ ((aligned(16)));
+    __GR_ATTR_ALIGNED(16) __m128i dvbt_viterbi_decoder_impl::d_metric0[4];
+    __GR_ATTR_ALIGNED(16) __m128i dvbt_viterbi_decoder_impl::d_metric1[4];
+    __GR_ATTR_ALIGNED(16) __m128i dvbt_viterbi_decoder_impl::d_path0[4];
+    __GR_ATTR_ALIGNED(16) __m128i dvbt_viterbi_decoder_impl::d_path1[4];
 #else
-    unsigned char dvbt_viterbi_decoder_impl::d_metric0_generic[64] __attribute__ ((aligned(16)));
-    unsigned char dvbt_viterbi_decoder_impl::d_metric1_generic[64] __attribute__ ((aligned(16)));
-    unsigned char dvbt_viterbi_decoder_impl::d_path0_generic[64] __attribute__ ((aligned(16)));
-    unsigned char dvbt_viterbi_decoder_impl::d_path1_generic[64] __attribute__ ((aligned(16)));
+    __GR_ATTR_ALIGNED(16) unsigned char dvbt_viterbi_decoder_impl::d_metric0_generic[64];
+    __GR_ATTR_ALIGNED(16) unsigned char dvbt_viterbi_decoder_impl::d_metric1_generic[64];
+    __GR_ATTR_ALIGNED(16) unsigned char dvbt_viterbi_decoder_impl::d_path0_generic[64];
+    __GR_ATTR_ALIGNED(16) unsigned char dvbt_viterbi_decoder_impl::d_path1_generic[64];
 #endif
 
 #ifdef DTV_SSE2
-    branchtab27 dvbt_viterbi_decoder_impl::Branchtab27_sse2[2] __attribute__ ((aligned(16)));
+    __GR_ATTR_ALIGNED(16) branchtab27 dvbt_viterbi_decoder_impl::Branchtab27_sse2[2];
 #else
-    branchtab27 dvbt_viterbi_decoder_impl::Branchtab27_generic[2] __attribute__ ((aligned(16)));
+    __GR_ATTR_ALIGNED(16) branchtab27 dvbt_viterbi_decoder_impl::Branchtab27_generic[2];
 #endif
 
-    unsigned char dvbt_viterbi_decoder_impl::mmresult[64] __attribute__((aligned(16)));
-    unsigned char dvbt_viterbi_decoder_impl::ppresult[TRACEBACK_MAX][64] __attribute__((aligned(16)));
+    __GR_ATTR_ALIGNED(16) unsigned char dvbt_viterbi_decoder_impl::mmresult[64];
+    __GR_ATTR_ALIGNED(16) unsigned char dvbt_viterbi_decoder_impl::ppresult[TRACEBACK_MAX][64];
 
 #ifdef DTV_SSE2
     void
@@ -578,8 +577,6 @@ namespace gr {
        *
        * out/in rate is therefore km/8n in bytes
        */
-      assert((d_k * d_m) % (8 * d_n));
-      set_relative_rate((d_k * d_m) / (8 * d_n));
 
       assert ((d_bsize * d_n) % d_m == 0);
       set_output_multiple (d_bsize * d_k / 8);
@@ -597,10 +594,10 @@ namespace gr {
       d_nout = d_nbits / 2 / 8;
 
       // Allocate the buffer for the bits
-      d_inbits = new unsigned char [d_nbits];
+      d_inbits = new (std::nothrow) unsigned char [d_nbits];
       if (d_inbits == NULL) {
-        std::cout << "Cannot allocate memory for d_inbits" << std::endl;
-        exit(1);
+        GR_LOG_FATAL(d_logger, "Viterbi Decoder, cannot allocate memory for d_inbits.");
+        throw std::bad_alloc();
       }
 
       mettab[0][0] = 1;

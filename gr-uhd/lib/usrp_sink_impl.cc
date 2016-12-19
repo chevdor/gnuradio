@@ -29,8 +29,6 @@
 namespace gr {
   namespace uhd {
 
-    static const size_t ALL_CHANS = ::uhd::usrp::multi_usrp::ALL_CHANS;
-
     usrp_sink::sptr
     usrp_sink::make(const ::uhd::device_addr_t &device_addr,
 		    const ::uhd::io_type_t &io_type,
@@ -171,12 +169,16 @@ namespace gr {
 
     void usrp_sink_impl::set_normalized_gain(double norm_gain, size_t chan)
     {
+#ifdef UHD_USRP_MULTI_USRP_NORMALIZED_GAIN
+        _dev->set_normalized_tx_gain(norm_gain, chan);
+#else
       if (norm_gain > 1.0 || norm_gain < 0.0) {
         throw std::runtime_error("Normalized gain out of range, must be in [0, 1].");
       }
       ::uhd::gain_range_t gain_range = get_gain_range(chan);
       double abs_gain = (norm_gain * (gain_range.stop() - gain_range.start())) + gain_range.start();
       set_gain(abs_gain, chan);
+#endif
     }
 
     double
@@ -196,6 +198,9 @@ namespace gr {
     double
     usrp_sink_impl::get_normalized_gain(size_t chan)
     {
+#ifdef UHD_USRP_MULTI_USRP_NORMALIZED_GAIN
+        return _dev->get_normalized_tx_gain(chan);
+#else
       ::uhd::gain_range_t gain_range = get_gain_range(chan);
       double norm_gain =
         (get_gain(chan) - gain_range.start()) /
@@ -204,6 +209,7 @@ namespace gr {
       if (norm_gain > 1.0) return 1.0;
       if (norm_gain < 0.0) return 0.0;
       return norm_gain;
+#endif
     }
 
     std::vector<std::string>
@@ -369,6 +375,7 @@ namespace gr {
         }
       }
 
+      boost::this_thread::disable_interruption disable_interrupt;
 #ifdef GR_UHD_USE_STREAM_API
       //send all ninput_items with metadata
       const size_t num_sent = _tx_stream->send
@@ -378,6 +385,7 @@ namespace gr {
         (input_items, ninput_items, _metadata,
          *_type, ::uhd::device::SEND_MODE_FULL_BUFF, 1.0);
 #endif
+      boost::this_thread::restore_interruption restore_interrupt(disable_interrupt);
 
       //if using length_tags, decrement items left to send by the number of samples sent
       if(not pmt::is_null(_length_tag_key) && _nitems_to_send > 0) {

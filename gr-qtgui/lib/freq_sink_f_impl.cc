@@ -161,11 +161,7 @@ namespace gr {
       }
 
       // If a style sheet is set in the prefs file, enable it here.
-      std::string qssfile = prefs::singleton()->get_string("qtgui","qss","");
-      if(qssfile.size() > 0) {
-        QString sstext = get_qt_style_sheet(QString(qssfile.c_str()));
-        d_qApplication->setStyleSheet(sstext);
-      }
+      check_set_qss(d_qApplication);
 
       int numplots = (d_nconnections > 0) ? d_nconnections : 1;
       d_main_gui = new FreqDisplayForm(numplots, d_parent);
@@ -262,6 +258,13 @@ namespace gr {
     freq_sink_f_impl::set_y_axis(double min, double max)
     {
       d_main_gui->setYaxis(min, max);
+    }
+
+    void
+    freq_sink_f_impl::set_y_label(const std::string &label,
+                                  const std::string &unit)
+    {
+        d_main_gui->setYLabel(label, unit);
     }
 
     void
@@ -409,6 +412,12 @@ namespace gr {
     freq_sink_f_impl::enable_autoscale(bool en)
     {
       d_main_gui->autoScale(en);
+    }
+
+    void
+    freq_sink_f_impl::enable_axis_labels(bool en)
+    {
+        d_main_gui->setAxisLabels(en);
     }
 
     void

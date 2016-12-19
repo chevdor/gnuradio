@@ -47,6 +47,13 @@ namespace gr {
       double m = 1.0;
       r1 = m;
       switch (constellation) {
+        case MOD_BPSK:
+        case MOD_BPSK_SF2:
+          m_bpsk[0][0] = gr_complex((r1 * cos(M_PI / 4.0)), (r1 * sin(M_PI / 4.0)));
+          m_bpsk[0][1] = gr_complex((r1 * cos(5.0 * M_PI / 4.0)), (r1 * sin(5.0 * M_PI / 4.0)));
+          m_bpsk[1][0] = gr_complex((r1 * cos(5.0 * M_PI / 4.0)), (r1 * sin(M_PI / 4.0)));
+          m_bpsk[1][1] = gr_complex((r1 * cos(M_PI / 4.0)), (r1 * sin(5.0 * M_PI /4.0)));
+          break;
         case MOD_QPSK:
           m_qpsk[0] = gr_complex((r1 * cos(M_PI / 4.0)), (r1 * sin(M_PI / 4.0)));
           m_qpsk[1] = gr_complex((r1 * cos(7 * M_PI / 4.0)), (r1 * sin(7 * M_PI / 4.0)));
@@ -205,9 +212,6 @@ namespace gr {
             m_16apsk[13] = gr_complex(0.4984, -1.2088);
             m_16apsk[14] = gr_complex(-1.2088, -0.4984);
             m_16apsk[15] = gr_complex(-0.4984, -1.2088);
-            for (int i = 0; i < 16; i++) {
-              m_16apsk[i] /= 1.2088;
-            }
           }
           else if (rate == C20_30) {
             m_16apsk[0] = gr_complex(0.5061, 0.2474);
@@ -226,9 +230,6 @@ namespace gr {
             m_16apsk[13] = gr_complex(0.4909, -1.2007);
             m_16apsk[14] = gr_complex(-1.2007, -0.4909);
             m_16apsk[15] = gr_complex(-0.4909, -1.2007);
-            for (int i = 0; i < 16; i++) {
-              m_16apsk[i] /= 1.2007;
-            }
           }
           else {
             r2 = m;
@@ -1096,9 +1097,6 @@ namespace gr {
             m_256apsk[253] = gr_complex(-0.1909, -0.3627);
             m_256apsk[254] = gr_complex(-0.3224, -0.5236);
             m_256apsk[255] = gr_complex(-0.3016, -0.5347);
-            for (int i = 0; i < 256; i++) {
-              m_256apsk[i] /= 1.6747;
-            }
           }
           else if (rate == C22_30) {
             m_256apsk[0] = gr_complex(1.5977, 0.1526);
@@ -1357,9 +1355,6 @@ namespace gr {
             m_256apsk[253] = gr_complex(0.3110, -0.5686);
             m_256apsk[254] = gr_complex(-0.3893, -0.7143);
             m_256apsk[255] = gr_complex(-0.3110, -0.5686);
-            for (int i = 0; i < 256; i++) {
-              m_256apsk[i] /= 1.6329;
-            }
           }
           else {
             r8 = m;
@@ -1726,6 +1721,16 @@ namespace gr {
           m_64apsk[62] = gr_complex( 7.0, -7.0);
           m_64apsk[63] = gr_complex( 7.0,  7.0);
           break;
+        case MOD_8VSB:
+          m_8psk[0] = gr_complex(-7.0 + 1.25, 0.0);
+          m_8psk[1] = gr_complex(-5.0 + 1.25, 0.0);
+          m_8psk[2] = gr_complex(-3.0 + 1.25, 0.0);
+          m_8psk[3] = gr_complex(-1.0 + 1.25, 0.0);
+          m_8psk[4] = gr_complex( 1.0 + 1.25, 0.0);
+          m_8psk[5] = gr_complex( 3.0 + 1.25, 0.0);
+          m_8psk[6] = gr_complex( 5.0 + 1.25, 0.0);
+          m_8psk[7] = gr_complex( 7.0 + 1.25, 0.0);
+          break;
         default:
           m_qpsk[0] = gr_complex((r1 * cos(M_PI / 4.0)), (r1 * sin(M_PI / 4.0)));
           m_qpsk[1] = gr_complex((r1 * cos(7 * M_PI / 4.0)), (r1 * sin(7 * M_PI / 4.0)));
@@ -1771,6 +1776,13 @@ namespace gr {
 
       if (signal_interpolation == INTERPOLATION_OFF) {
         switch (signal_constellation) {
+          case MOD_BPSK:
+          case MOD_BPSK_SF2:
+            for (int i = 0; i < noutput_items; i++) {
+              index = *in++;
+              *out++ = m_bpsk[i & 1][index & 0x1];
+            }
+            break;
           case MOD_QPSK:
             for (int i = 0; i < noutput_items; i++) {
               index = *in++;
@@ -1778,6 +1790,7 @@ namespace gr {
             }
             break;
           case MOD_8PSK:
+          case MOD_8VSB:
           case MOD_8APSK:
             for (int i = 0; i < noutput_items; i++) {
               index = *in++;
@@ -1830,6 +1843,14 @@ namespace gr {
       }
       else {
         switch (signal_constellation) {
+          case MOD_BPSK:
+          case MOD_BPSK_SF2:
+            for (int i = 0; i < noutput_items; i++) {
+              index = *in++;
+              *out++ = m_bpsk[i & 1][index & 0x1];
+              *out++ = zero;
+            }
+            break;
           case MOD_QPSK:
             for (int i = 0; i < noutput_items / 2; i++) {
               index = *in++;
