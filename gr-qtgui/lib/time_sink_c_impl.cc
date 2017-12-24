@@ -55,6 +55,9 @@ namespace gr {
 	d_size(size), d_buffer_size(2*size), d_samp_rate(samp_rate), d_name(name),
 	d_nconnections(2*nconnections), d_parent(parent)
     {
+      if(nconnections > 12)
+        throw std::runtime_error("time_sink_c only supports up to 12 inputs");
+
       // Required now for Qt; argc must be greater than 0 and argv
       // must have at least one valid character. Must be valid through
       // life of the qApplication:
@@ -563,12 +566,15 @@ namespace gr {
                         nr, nr + nitems + 1,
                         d_trigger_tag_key);
       if(tags.size() > 0) {
-        d_triggered = true;
         trigger_index = tags[0].offset - nr;
-        d_start = d_index + trigger_index - d_trigger_delay - 1;
-        d_end = d_start + d_size;
-        d_trigger_count = 0;
-        _adjust_tags(-d_start);
+        int start = d_index + trigger_index - d_trigger_delay - 1;
+        if (start >= 0) {
+            d_triggered = true;
+            d_start = start;
+            d_end = d_start + d_size;
+            d_trigger_count = 0;
+            _adjust_tags(-d_start);
+        }
       }
     }
 

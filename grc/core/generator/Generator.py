@@ -171,10 +171,10 @@ class TopBlockGenerator(object):
         # Get the virtual blocks and resolve their connections
         virtual = filter(lambda c: c.get_source().get_parent().is_virtual_source(), connections)
         for connection in virtual:
-            source = connection.get_source().resolve_virtual_source()
             sink = connection.get_sink()
-            resolved = fg.get_parent().Connection(flow_graph=fg, porta=source, portb=sink)
-            connections.append(resolved)
+            for source in connection.get_source().resolve_virtual_source():
+                resolved = fg.get_parent().Connection(flow_graph=fg, porta=source, portb=sink)
+                connections.append(resolved)
             # Remove the virtual connection
             connections.remove(connection)
 
@@ -335,6 +335,7 @@ class HierBlockGenerator(TopBlockGenerator):
             param_n['key'] = param.get_id()
             param_n['value'] = param.get_param('value').get_value()
             param_n['type'] = 'raw'
+            param_n['hide'] = param.get_param('hide').get_value()
             block_n['param'].append(param_n)
 
         # Bus stuff

@@ -179,10 +179,7 @@ macro(GR_SWIG_MAKE name)
     list(APPEND SWIG_MODULE_${name}_EXTRA_DEPS ${tag_file})
 
     #setup the swig flags with flags and include directories
-    set(CMAKE_SWIG_FLAGS -fvirtual -modern -keyword -w511 -module ${name} ${GR_SWIG_FLAGS})
-    foreach(dir ${GR_SWIG_INCLUDE_DIRS})
-        list(APPEND CMAKE_SWIG_FLAGS "-I${dir}")
-    endforeach(dir)
+    set(CMAKE_SWIG_FLAGS -fvirtual -modern -keyword -w511 -w314 -module ${name} ${GR_SWIG_FLAGS})
 
     #set the C++ property on the swig .i file so it builds
     set_source_files_properties(${ifiles} PROPERTIES CPLUSPLUS ON)
@@ -190,7 +187,12 @@ macro(GR_SWIG_MAKE name)
     #setup the actual swig library target to be built
     include(UseSWIG)
     SWIG_ADD_MODULE(${name} python ${ifiles})
-    SWIG_LINK_LIBRARIES(${name} ${PYTHON_LIBRARIES} ${GR_SWIG_LIBRARIES})
+    if(APPLE)
+      set(PYTHON_LINK_OPTIONS "-undefined dynamic_lookup")
+    else()
+      set(PYTHON_LINK_OPTIONS ${PYTHON_LIBRARIES})
+    endif(APPLE)
+    SWIG_LINK_LIBRARIES(${name} ${PYTHON_LINK_OPTIONS} ${GR_SWIG_LIBRARIES})
     if(${name} STREQUAL "runtime_swig")
         SET_TARGET_PROPERTIES(${SWIG_MODULE_runtime_swig_REAL_NAME} PROPERTIES DEFINE_SYMBOL "gnuradio_runtime_EXPORTS")
     endif(${name} STREQUAL "runtime_swig")
